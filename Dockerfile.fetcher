@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+# A sample microservice in Go packaged into a container image.
+FROM golang:1.22
+
+COPY . /go/src/app
+
+WORKDIR /go/src/app/cmd/fetcher
+
+RUN go build -o fetcher main.go
+
+EXPOSE 9090
+
+CMD ["./fetcher"]

@@ -3,39 +3,34 @@ package mongoClient
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var DB *mongo.Client
-
-func init() {
-	DB = ConnectDB()
+type MongoClient struct {
+	client *mongo.Client
 }
 
-func ConnectDB() *mongo.Client {
-	clientOptions := options.Client().ApplyURI(EnvMongoURI())
+func NewClient() (*MongoClient, error) {
+	clientOptions := options.Client().ApplyURI("mongodb://admin:pass@db:27017/")
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
 
 	// Проверка подключения к базе данных
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("failed to ping MongoDB server: %w", err)
 	}
 	fmt.Println("Connected to MongoDB")
-	return client
+	return &MongoClient{client: client}, nil
 }
 
-// Получение коллекции из базы данных
-func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-	collection := client.Database("golangAPI").Collection(collectionName)
-	return collection
+// GetCollection возвращает коллекцию из базы данных.
+func (mc *MongoClient) GetCollection(collectionName string) *mongo.Collection {
+	return mc.client.Database("golangAPI").Collection(collectionName)
 }
