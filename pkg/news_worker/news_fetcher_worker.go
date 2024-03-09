@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	models "news_fetcher/internal/domain/entity"
+	news_fetcher "news_fetcher/internal/domain/model"
 	"news_fetcher/internal/repositories"
 	"strconv"
 )
@@ -36,16 +37,16 @@ func (s *NewsService) FetchAndSaveNews(ctx context.Context, fetchUrl string) err
 
 	defer resp.Body.Close()
 
-	var newListInfo models.NewListInformation
+	var newListInfo news_fetcher.NewListInformationFetcher
 	if err := xml.NewDecoder(resp.Body).Decode(&newListInfo); err != nil {
 		return fmt.Errorf("error decoding XML data: %v", err)
 	}
 
 	// Iterate through each News item
-	for _, newsItem := range newListInfo.NewsletterNewsItems {
+	for _, fetchedModel := range newListInfo.NewsletterNewsItems {
 
 		// Fetch additional details using NewsArticleID
-		additionalDetailsURL := "https://www.htafc.com/api/incrowd/getnewsarticleinformation?id=" + strconv.Itoa(newsItem.NewsArticleID)
+		additionalDetailsURL := "https://www.htafc.com/api/incrowd/getnewsarticleinformation?id=" + strconv.Itoa(fetchedModel.NewsArticleID)
 
 		// Create a new request with the additional details URL
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, additionalDetailsURL, nil)
@@ -63,20 +64,21 @@ func (s *NewsService) FetchAndSaveNews(ctx context.Context, fetchUrl string) err
 
 		defer additionalResp.Body.Close()
 
-		var additionalInfo models.NewsArticleInformation
+		var additionalInfo news_fetcher.NewsArticleInformationFetcher
 		if err := xml.NewDecoder(additionalResp.Body).Decode(&additionalInfo); err != nil {
 			log.Println("Error decoding additional details:", err)
 			continue // Skip to the next News item
 		}
 
 		// Assign additional details to the corresponding News item
-		newsItem.Subtitle = additionalInfo.Subtitle
-		newsItem.BodyText = additionalInfo.BodyText
-		newsItem.GalleryImageURLs = additionalInfo.GalleryImageURLs
-		newsItem.VideoURL = additionalInfo.VideoURL
+		fetchedModel.Subtitle = additionalInfo.Subtitle
+		fetchedModel.BodyText = additionalInfo.BodyText
+		fetchedModel.GalleryImageURLs = additionalInfo.GalleryImageURLs
+		fetchedModel.VideoURL = additionalInfo.VideoURL
 
+		newsEntity := models.FetchedNewsModelToEntity(&fetchedModel)
 		// Save updated News item into MongoDB
-		if err := s.repository.Save(ctx, newsItem); err != nil {
+		if err := s.repository.Save(ctx, newsEntity); err != nil {
 			log.Println("Error saving data to MongoDB:", err)
 		}
 	}

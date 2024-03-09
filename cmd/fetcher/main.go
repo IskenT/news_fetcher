@@ -47,7 +47,7 @@ func main() {
 	c.Start()
 
 	// Routes
-	routes.NewsFetcherRoute(router)
+	routes.NewsFetcherRoute(router, newsRepo)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,

@@ -3,24 +3,20 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	models "news_fetcher/internal/domain/entity"
+	"news_fetcher/internal/api"
+	"news_fetcher/internal/repositories"
 	"news_fetcher/internal/responses"
-	mongoClient "news_fetcher/pkg/client"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func GetNewsById() http.HandlerFunc {
+func GetNewsById(newsRepo *repositories.NewsRepository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+		// ваш код
 		params := mux.Vars(r)
 		newsId := params["newsId"]
 		// Преобразуем newsId в int
@@ -31,19 +27,7 @@ func GetNewsById() http.HandlerFunc {
 			json.NewEncoder(rw).Encode(response)
 			return
 		}
-
-		var news models.News
-
-		// Получаем коллекцию новостей
-		newsCollection, err := getNewsCollection()
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			response := responses.NewsResponse{Status: http.StatusInternalServerError, Message: "Error connecting to MongoDB", Data: map[string]interface{}{"error": err.Error()}}
-			json.NewEncoder(rw).Encode(response)
-			return
-		}
-
-		err = newsCollection.FindOne(ctx, bson.M{"newsarticleid": newsArticleID}).Decode(&news)
+		newsItem, err := newsRepo.GetById(r.Context(), newsArticleID)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				rw.WriteHeader(http.StatusNotFound)
@@ -57,30 +41,19 @@ func GetNewsById() http.HandlerFunc {
 			return
 		}
 
+		news := api.GetNewsById(&newsItem)
+
 		rw.WriteHeader(http.StatusOK)
 		response := responses.NewsResponse{Status: http.StatusOK, Message: "Success", Data: map[string]interface{}{"news": news}}
 		json.NewEncoder(rw).Encode(response)
 	}
 }
 
-func GetAllNews() http.HandlerFunc {
+func GetAllNews(newsRepo *repositories.NewsRepository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-
-		var news []models.News
-		fmt.Println("Im here")
-
-		// Получаем коллекцию новостей
-		newsCollection, err := getNewsCollection()
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			response := responses.NewsResponse{Status: http.StatusInternalServerError, Message: "Error connecting to MongoDB", Data: map[string]interface{}{"error": err.Error()}}
-			json.NewEncoder(rw).Encode(response)
-			return
-		}
-
-		results, err := newsCollection.Find(ctx, bson.M{})
+		newsList, err := newsRepo.GetAll(ctx)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.NewsResponse{Status: http.StatusInternalServerError, Message: "Error retrieving news", Data: map[string]interface{}{"error": err.Error()}}
@@ -88,33 +61,10 @@ func GetAllNews() http.HandlerFunc {
 			return
 		}
 
-		defer results.Close(ctx)
-		for results.Next(ctx) {
-			var onePieceOfNews models.News
-			if err = results.Decode(&onePieceOfNews); err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
-				response := responses.NewsResponse{Status: http.StatusInternalServerError, Message: "Error decoding news data", Data: map[string]interface{}{"error": err.Error()}}
-				json.NewEncoder(rw).Encode(response)
-				return
-			}
-
-			news = append(news, onePieceOfNews)
-		}
+		news := api.GetNewsList(newsList)
 
 		rw.WriteHeader(http.StatusOK)
 		response := responses.NewsResponse{Status: http.StatusOK, Message: "Success", Data: map[string]interface{}{"news": news}}
 		json.NewEncoder(rw).Encode(response)
 	}
-}
-
-func getNewsCollection() (*mongo.Collection, error) {
-	// Получаем экземпляр клиента MongoDB
-	client, err := mongoClient.NewClient()
-	if err != nil {
-		return nil, err
-	}
-
-	// Получаем коллекцию новостей
-	newsCollection := client.GetCollection("news")
-	return newsCollection, nil
 }

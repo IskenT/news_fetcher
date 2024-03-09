@@ -2,6 +2,7 @@ package routes
 
 import (
 	"news_fetcher/internal/controllers"
+	"news_fetcher/internal/repositories"
 
 	"github.com/gorilla/mux"
 )
@@ -11,7 +12,7 @@ const (
 	newsAllURL = "/news"
 )
 
-func NewsFetcherRoute(router *mux.Router) {
-	router.HandleFunc(newsURL, controllers.GetNewsById()).Methods("GET")
-	router.HandleFunc(newsAllURL, controllers.GetAllNews()).Methods("GET")
+func NewsFetcherRoute(router *mux.Router, newsRepo *repositories.NewsRepository) {
+	router.HandleFunc(newsURL, controllers.GetNewsById(newsRepo)).Methods("GET")
+	router.HandleFunc(newsAllURL, controllers.GetAllNews(newsRepo)).Methods("GET")
 }

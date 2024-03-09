@@ -1,33 +1,41 @@
 package models
 
-type NewListInformation struct {
-	ClubName            string `xml:"ClubName"`
-	ClubWebsiteURL      string `xml:"ClubWebsiteURL"`
-	NewsletterNewsItems []News `xml:"NewsletterNewsItems>NewsletterNewsItem"`
-}
+import (
+	models "news_fetcher/internal/domain/model"
+)
 
 type News struct {
-	ArticleURL        string `xml:"ArticleURL" json:"article_url"`
-	NewsArticleID     int    `xml:"NewsArticleID" json:"news_article_id"`
-	PublishDate       string `xml:"PublishDate" json:"publish_date"`
-	Taxonomies        string `xml:"Taxonomies" json:"taxonomies"`
-	TeaserText        string `xml:"TeaserText" json:"teaser_text"`
-	ThumbnailImageURL string `xml:"ThumbnailImageURL" json:"thumbnail_image_url"`
-	Title             string `xml:"Title" json:"title"`
-	OptaMatchID       string `xml:"OptaMatchId" json:"opta_match_id"`
-	LastUpdateDate    string `xml:"LastUpdateDate" json:"last_update_date"`
-	IsPublished       bool   `xml:"IsPublished" json:"is_published"`
-
-	// Additional details from NewsArticleInformation
-	Subtitle         string   `xml:"Subtitle"`
-	BodyText         string   `xml:"BodyText"`
-	GalleryImageURLs []string `xml:"GalleryImageURLs"`
-	VideoURL         string   `xml:"VideoURL"`
+	ArticleURL        string   `bson:"article_url, omitempty"`
+	NewsArticleID     int      `bson:"news_article_id, omitempty"`
+	PublishDate       string   `bson:"publish_date, omitempty"`
+	Taxonomies        string   `bson:"taxonomies, omitempty"`
+	TeaserText        string   `bson:"teaser_text, omitempty"`
+	ThumbnailImageURL string   `bson:"thumbnail_image_url, omitempty"`
+	Title             string   `bson:"title, omitempty"`
+	OptaMatchID       string   `bson:"opta_match_id, omitempty"`
+	LastUpdateDate    string   `bson:"last_update_date, omitempty"`
+	IsPublished       bool     `bson:"is_published, omitempty"`
+	Subtitle          string   `bson:"subtitle, omitempty"`
+	BodyText          string   `bson:"body_text, omitempty"`
+	GalleryImageURLs  []string `bson:"gallery_image_urls, omitempty"`
+	VideoURL          string   `bson:"video_url, omitempty"`
 }
 
-type NewsArticleInformation struct {
-	Subtitle         string   `xml:"Subtitle"`
-	BodyText         string   `xml:"BodyText"`
-	GalleryImageURLs []string `xml:"GalleryImageURLs>GalleryImageURL"`
-	VideoURL         string   `xml:"VideoURL"`
+func FetchedNewsModelToEntity(NewsModel *models.NewsFetcher) News {
+	return News{
+		ArticleURL:        NewsModel.ArticleURL,
+		NewsArticleID:     NewsModel.NewsArticleID,
+		PublishDate:       NewsModel.PublishDate,
+		Taxonomies:        NewsModel.Taxonomies,
+		TeaserText:        NewsModel.TeaserText,
+		ThumbnailImageURL: NewsModel.ThumbnailImageURL,
+		Title:             NewsModel.Title,
+		OptaMatchID:       NewsModel.OptaMatchID,
+		LastUpdateDate:    NewsModel.LastUpdateDate,
+		IsPublished:       NewsModel.IsPublished,
+		Subtitle:          NewsModel.Subtitle,
+		BodyText:          NewsModel.BodyText,
+		GalleryImageURLs:  NewsModel.GalleryImageURLs,
+		VideoURL:          NewsModel.VideoURL,
+	}
 }

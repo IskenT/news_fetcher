@@ -23,7 +23,7 @@ func NewNewsRepository(ctx context.Context, client *mongoClient.MongoClient) *Ne
 func (r *NewsRepository) Save(ctx context.Context, news models.News) error {
 	// Check if the news item already exists in the database
 	var existingNews models.News
-	err := r.collection.FindOne(ctx, bson.M{"newsarticleid": news.NewsArticleID}).Decode(&existingNews)
+	err := r.collection.FindOne(ctx, bson.M{"news_article_id": news.NewsArticleID}).Decode(&existingNews)
 	if err == nil {
 		// If the news item already exists, skip insertion
 		fmt.Println("News with ID:", news.NewsArticleID, "already exists. Skipping insertion.")
@@ -41,4 +41,33 @@ func (r *NewsRepository) Save(ctx context.Context, news models.News) error {
 	fmt.Println("Inserted news with ID:", news.NewsArticleID)
 
 	return nil
+}
+
+func (r *NewsRepository) GetById(ctx context.Context, newsId int) (models.News, error) {
+	var news models.News
+	err := r.collection.FindOne(ctx, bson.M{"news_article_id": newsId}).Decode(&news)
+	if err != nil {
+		return models.News{}, fmt.Errorf("error finding news by ID: %v", err)
+	}
+	return news, nil
+}
+
+func (r *NewsRepository) GetAll(ctx context.Context) ([]models.News, error) {
+	var newsList []models.News
+
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving news: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var news models.News
+		if err := cursor.Decode(&news); err != nil {
+			return nil, fmt.Errorf("error decoding news data: %v", err)
+		}
+		newsList = append(newsList, news)
+	}
+
+	return newsList, nil
 }
