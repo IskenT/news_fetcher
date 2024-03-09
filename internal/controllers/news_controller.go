@@ -66,8 +66,9 @@ func GetNewsById() http.HandlerFunc {
 func GetAllNews() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		var news []models.News
 		defer cancel()
+
+		var news []models.News
 		fmt.Println("Im here")
 
 		// Получаем коллекцию новостей

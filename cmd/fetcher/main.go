@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	config "news_fetcher/configs"
 	"news_fetcher/internal/repositories"
 	"news_fetcher/internal/routes"
 	mongoClient "news_fetcher/pkg/client"
@@ -18,12 +19,10 @@ import (
 	"github.com/robfig/cron"
 )
 
-const (
-	fetchURL = "https://www.htafc.com/api/incrowd/getnewlistinformation?count=50"
-)
-
 func main() {
 	ctx := context.Background()
+
+	cfg := config.Get()
 
 	router := mux.NewRouter()
 
@@ -43,7 +42,7 @@ func main() {
 	// Schedule the fetchAndSaveData function to run every 1 minute
 	c.AddFunc("0 */1 * * *", func() {
 		fmt.Println("Cron started")
-		newsService.FetchAndSaveNews(ctx, fetchURL) // Use service method
+		newsService.FetchAndSaveNews(ctx, cfg.FETCHUrl) // Use service method
 	})
 	c.Start()
 
@@ -51,7 +50,7 @@ func main() {
 	routes.NewsFetcherRoute(router)
 
 	srv := &http.Server{
-		Addr:    ":9090",
+		Addr:    cfg.HTTPAddr,
 		Handler: router,
 	}
 
