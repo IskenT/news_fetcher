@@ -5,7 +5,6 @@ This repository contains code which fetchs data from sport news.
 
 The project must meet the following requirements:
 - Be written in Golang 
-- https://golang.org/doc/ 
 - Use MongoDB to store news articles 
 - At regular intervals, poll the endpoint for new news articles
 - Transform the XML feeds of news articles into appropriate model(s) and save them in the database
