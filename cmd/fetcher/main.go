@@ -12,7 +12,6 @@ import (
 	"news_fetcher/pkg/news_worker"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -38,13 +37,13 @@ func main() {
 	// Create service
 	newsService := news_worker.NewNewsService(newsRepo)
 
-	c := cron.New()
+	crn := cron.New()
 	// Schedule the fetchAndSaveData function to run every 1 minute
-	c.AddFunc("0 */1 * * *", func() {
+	crn.AddFunc("0 */1 * * *", func() {
 		fmt.Println("Cron started")
 		newsService.FetchAndSaveNews(ctx, cfg.FETCHUrl) // Use service method
 	})
-	c.Start()
+	crn.Start()
 
 	// Routes
 	routes.NewsFetcherRoute(router, newsRepo)
@@ -54,35 +53,17 @@ func main() {
 		Handler: router,
 	}
 
-	srvErrs := make(chan error, 1)
 	go func() {
-		srvErrs <- srv.ListenAndServe()
+		if err := srv.ListenAndServe(); err != nil {
+			log.Println(err.Error())
+		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	shutdown := stopSrv(srv)
-
-	select {
-	case err := <-srvErrs:
-		shutdown(err)
-	case sig := <-quit:
-		shutdown(sig)
-	}
-
-	log.Println("Server exiting")
-}
-
-func stopSrv(srv *http.Server) func(reason interface{}) {
-	return func(reason interface{}) {
-		log.Println("Server Shutdown:", reason)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Println("Error Gracefully Shutting Down API:", err)
-		}
-	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
+	log.Println("Shut down gracefuly!")
 }
